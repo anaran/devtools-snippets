@@ -33,6 +33,9 @@
 //        - Import devtools-snippets JSON File from http://bgrins.github.io/devtools-snippets/snippets.json
 //
 //Implementation by [anaran](https://github.com/anaran).
+/*jslint browser: true */
+/*global console: false, URL: false*/
+'use strict';
 (function() {
     try {
         function getDownloadFileName(count) {
@@ -66,28 +69,32 @@
         var alertAndWarn = function(message) {
             window.alert(message + "\n----\nSee JavaScript console for the complete log of warnings");
             console.warn(message);
-        }
+        };
         var alertAndError = function(message) {
             window.alert(message + "\n----\nSee JavaScript console for the complete log of errors");
             console.error(message);
-        }
+        };
         var div = document.createElement('div');
         var devtoolsImportExport = function() {
             try {
                 var w = window.open("", "");
                 w.document.title = title;
                 w.document.body.appendChild(document.createElement('div').appendChild(div).parentElement);
-                var aClose = document.createElement('a');
-                aClose.innerHTML = 'Close here (<strong>[ x ]</strong> crashes canary)';
-                aClose.href = '';
-                var closeDiv = document.createElement('div');
-                closeDiv.appendChild(aClose);
-                closeDiv.setAttribute('style', 'position:fixed; top: 0; right: 0; padding: 1em;');
-                w.document.body.appendChild(closeDiv);
-                aClose.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    event.view.close();
-                }, false);
+                // Related crash has been fixed.
+                // See https://code.google.com/p/chromium/issues/detail?id=323031
+                if (false) {
+                    var aClose = document.createElement('a');
+                    aClose.innerHTML = 'Close here (<strong>[ x ]</strong> crashes canary)';
+                    aClose.href = '';
+                    var closeDiv = document.createElement('div');
+                    closeDiv.appendChild(aClose);
+                    closeDiv.setAttribute('style', 'position:fixed; top: 0; right: 0; padding: 1em;');
+                    w.document.body.appendChild(closeDiv);
+                    aClose.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        event.view.close();
+                    }, false);
+                }
                 if (location.origin === "chrome-devtools://devtools") {
                     var importSnippets = document.createElement('input');
                     importSnippets.type = 'file';
@@ -102,14 +109,11 @@
                     //                     reviewImports.name = "reviewImports";
                     reviewImports.type = "checkbox";
                     reviewImports.title = "Review each imported snippet in popup window.";
-                    // TODO Please note that closing a review window curretly crashes canary.
-                    // See https://code.google.com/p/chromium/issues/detail?id=323031
                     reviewImports.checked = false;
                     var reviewImportsLabel = document.createElement('label');
                     reviewImportsLabel.
                     for = "reviewImports";
-                    // TODO Remove once https://code.google.com/p/chromium/issues/detail?id=323031 gets fixed.
-                    reviewImportsLabel.innerText = "review (crashes canary)";
+                    reviewImportsLabel.innerText = "review";
                     div.appendChild(reviewImportsLabel);
                     div.appendChild(reviewImports);
 
@@ -164,7 +168,7 @@
                             a.download = getDownloadFileName(snippets.length);
                             a.click();
                         }
-                    }
+                    };
                     exportButton.addEventListener('click', function(event) {
                         if (exportTypeSelect.value === individualFiles.innerText) {
                             exportSnippets( !! "individually");
@@ -265,7 +269,7 @@
                         } else {
                             newSnippet(!'rename');
                         }
-                    }
+                    };
 
                     function readFileUpdateUI(file) {
                         var reader = new FileReader();
@@ -366,7 +370,6 @@
                         event.preventDefault(); // stops the browser from redirecting.
                         if (checkFileCount(event.dataTransfer.files)) {
                             // TODO files are added to head of the list, so we have to process in reverse order.
-                            filesLoaded = 0;
                             console.log("Loading files, please wait...");
                             for (var i = 0, len = event.dataTransfer.files.length; i < len; i++) {
                                 handleDrop(event.dataTransfer.files[i]);
@@ -398,14 +401,14 @@
                         });
                         deleteButton.value = 'Delete All ' + snippets.length + ' Snippets';
                         exportButton.value = 'Export All ' + snippets.length + ' Snippets';
-                    }
+                    };
                 };
                 refreshSnippetDisplay();
                 w.setInterval(refreshSnippetDisplay, 3000);
             } catch (exception) {
                 alertAndWarn(exception.stack.replace(/:(\d+):(\d+)/g, "$& (Line $1, Column $2)"));
             }
-        }
+        };
         if (location.origin === "chrome-devtools://devtools") {
             devtoolsImportExport();
         } else {
