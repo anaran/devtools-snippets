@@ -1,6 +1,6 @@
 ### consoleAutosave.js
 
-### Developer Tools Import/Export Snippet for Google Chrome
+### Developer Tools console messages autosave Snippet for Google Chrome
 
 Source
 -------
@@ -8,6 +8,7 @@ Source
 **Release** https://raw.github.com/bgrins/devtools-snippets/master/snippets/consoleAutosave/consoleAutosave.js
 
 **Development** https://raw.github.com/anaran/devtools-snippets/consoleAutosave/snippets/consoleAutosave/consoleAutosave.js
+
 Documentation
 -------
 
@@ -17,23 +18,19 @@ Documentation
 
 ### Features
 
--  Export Chrome Developer Tools Source Snippets
+-  Enable an interval timer to save console messages (commands and output) in devtools localStorage
 
-    - All into Single JSON File
-    - Individual Source Code Files
+    - Messages are checked every 5 seconds
+    - Messages are saved, along with a timestamp, whenever text content has grown by more than 20 characters
 
 
--  Import Source Snippets into Chrome Developer Tools
+-  Download previously autosaved console messages
 
-    - Select Multiple Files in Dialog Box
-    - Drop Multiple Files
+    - Whenever the snippet is run it checked for previous data in localStorage
 
-        - Import Source Files
-        - Import Previous Export File
-        - Import devtools-snippets JSON File from http://bgrins.github.io/devtools-snippets/snippets.json
+        - Presents previous data, along with a timestamp, in a popup window
+        - Provides a link in that popup window to download the autosaved data
 
 Implementation by [anaran](https://github.com/anaran).
-
-[Typical Use Cases](#step-1)
 
 [![consoleAutosave](consoleAutosave.gif)](consoleAutosave.js)
