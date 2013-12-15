@@ -26,7 +26,7 @@ Documentation
 
 -  Download previously autosaved console messages
 
-    - Whenever the snippet is run it checked for previous data in localStorage
+    - Whenever the snippet is run it checks for previous data in localStorage
 
         - Presents previous data, along with a timestamp, in a popup window
         - Provides a link in that popup window to download the autosaved data
