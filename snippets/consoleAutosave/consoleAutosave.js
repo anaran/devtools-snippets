@@ -6,7 +6,7 @@
     'use strict';
 (function() {
     var r, s, popup, popupFeatures = 'width=250,height=120',
-    come, text, autosaveInterval = 5000,
+        come, text, autosaveInterval = 5000,
         supportedProtocolRegExp = /^https?:$/;
     var getElementPath = function getElementPath(element, path) {
         if (!path) {
@@ -35,7 +35,7 @@
                 }
                 txt += getText(node);
                 if (cs && cs.display.match(/block/)) {
-//                     console.log(cs.display);
+                    //                     console.log(cs.display);
                     txt += '\n';
                 }
             } while (node = node.nextSibling);
@@ -43,20 +43,20 @@
         return txt;
     };
     if (supportedProtocolRegExp.test(location.protocol)) {
-    while ((s = window.getSelection()) && window.confirm('Select parentElement of current selection?\n\nCancel to select current selection.\n')) {
-        if (s.rangeCount) {
-            r = document.createRange();
-            r.selectNodeContents(s.getRangeAt(0).commonAncestorContainer.parentElement);
-            s.removeAllRanges();
-            s.addRange(r);
+        while ((s = window.getSelection()) && window.confirm('Select parentElement of current selection?\n\nCancel to select current selection.\n')) {
+            if (s.rangeCount) {
+                r = document.createRange();
+                r.selectNodeContents(s.getRangeAt(0).commonAncestorContainer.parentElement);
+                s.removeAllRanges();
+                s.addRange(r);
+            }
         }
-    }
-    if (!window.confirm('Enable autosaving selected element every ' + Number(autosaveInterval / 1000).toFixed(1) + ' seconds?\n\nSee [Previous autosave] [autosave] [x]\nat bottom right of page to download or quit autosaves.\n')) {
-        return;
-    }
-    come = s.getRangeAt(0).commonAncestorContainer;
+        if (!window.confirm('Enable autosaving selected element every ' + Number(autosaveInterval / 1000).toFixed(1) + ' seconds?\n\nSee [Previous autosave] [autosave] [x]\nat bottom right of page to download or quit autosaves.\n')) {
+            return;
+        }
+        come = s.getRangeAt(0).commonAncestorContainer;
     } else if (location.protocol === "chrome-devtools:") {
-            come = document.getElementById('console-messages');
+        come = document.getElementById('console-messages');
     } else {
         window.alert('Can only autosave nodes in\nGoogle Chrome console\nor pages matching\n' + supportedProtocolRegExp + '\nGiving up on ' + location.href);
     }
@@ -78,17 +78,17 @@
         close.addEventListener('click', function(event) {
             window.clearInterval(timerID);
             if (location.protocol === "chrome-devtools:") {
-popup.close();
+                popup.close();
             } else {
-            document.body.removeChild(autosaveIndicator);
+                document.body.removeChild(autosaveIndicator);
             }
         }, false);
-if (location.protocol === "chrome-devtools:") {
-    popup = window.open('', '', popupFeatures);
-    popup.document.body.appendChild(autosaveIndicator);
-    } else {
-    document.body.appendChild(autosaveIndicator);
-    }
+        if (location.protocol === "chrome-devtools:") {
+            popup = window.open('', '', popupFeatures);
+            popup.document.body.appendChild(autosaveIndicator);
+        } else {
+            document.body.appendChild(autosaveIndicator);
+        }
         if (localStorage.autosaveElementText && localStorage.autosaveElementTime) {
             var downloadOldLink = document.createElement('a');
             downloadOldLink.innerHTML = '&DoubleDownArrow; Previous autosave';
