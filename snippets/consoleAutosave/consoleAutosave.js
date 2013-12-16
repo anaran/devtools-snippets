@@ -2,14 +2,19 @@
 // Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1738.0 Safari/537.36
 // at Sun Dec 15 2013 16:57:42 GMT+0100 (Westeuropäische Normalzeit)
 /*jslint browser: true*/
-/*globals URL: false, console: false */
+/*globals Cc: false, Ci: false, Components: false, Cu: false, gBrowser:false, FileUtils: false,
+NetUtil: false, URL: false, console: false */
     'use strict';
 // Normalize comments because Format JS cannot do that yet.
 // From:^(\s*//\s)(\s+):To:$1:
 (function() {
-    var r, s, popup, popupFeatures = 'width=250,height=120',
+    var r, s, myDocument, popup, popupFeatures = 'width=250,height=120',
         come, text, autosaveInterval = 5000,
         supportedProtocolRegExp = /^https?:$/;
+    var /*localStorage.*/
+    autosaveElementText, /*localStorage.*/
+    autosaveElementPath, /*localStorage.*/
+    autosaveElementTime, autosaveElementFileText, autosaveElementBlob, firefoxAutosaveFile;
     var getElementPath = function getElementPath(element, path) {
         if (!path) {
             path = "";
@@ -33,7 +38,7 @@
                 try {
                     cs = window.getComputedStyle(node);
                 } catch (exception) {
-                    console.log(exception.stack);
+                    //                     console.log(exception.stack);
                 }
                 txt += getText(node);
                 if (cs && cs.display.match(/block/)) {
@@ -44,7 +49,79 @@
         }
         return txt;
     };
-    if (supportedProtocolRegExp.test(location.protocol)) {
+    if (window.hasOwnProperty('Cu')) {
+        var gDevTools = Cu.import("resource:///modules/devtools/gDevTools.jsm", {}).gDevTools;
+        var tools = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
+        var target = tools.TargetFactory.forTab(gBrowser.selectedTab);
+        var toolbox = gDevTools.getToolbox(target);
+        var panel = toolbox.getPanel("webconsole");
+
+        var getLocalDirectory = function(directory) {
+            let directoryService = Cc["@mozilla.org/file/directory_service;1"].
+            getService(Ci.nsIProperties);
+            // this is a reference to the profile dir (ProfD) now.
+            let localDir = directoryService.get("ProfD", Ci.nsIFile);
+
+            localDir.append(directory);
+
+            if (!localDir.exists() || !localDir.isDirectory()) {
+                // read and write permissions to owner and group, read-only for others.
+                localDir.create(Ci.nsIFile.DIRECTORY_TYPE, /*0774*/ 508);
+            }
+
+            return localDir;
+        };
+        var getFile = function(file, directory) {
+            let myFile = getLocalDirectory(directory);
+
+            myFile.append(file);
+            // do stuff with the file.
+            if (!myFile.exists()) {
+                // read and write permissions to owner and group, read-only for others.
+                myFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, /*0664*/ 436);
+            }
+            return myFile;
+        };
+
+        var readFile = function(file, callback) {
+            Components.utils.import("resource://gre/modules/NetUtil.jsm");
+            // See https://developer.mozilla.org/en-US/Add-ons/Code_snippets/File_I_O?redirectlocale=en-US&redirectslug=Code_snippets%2FFile_I_O
+            // for Read with content type hint, which I don't use yet.
+            //var channel = NetUtil.newChannel(file);
+            //channel.contentType = "application/json";
+            //
+            //NetUtil.asyncFetch(channel, function(inputStream, status) {
+            NetUtil.asyncFetch(file, callback);
+        };
+
+        var writeFile = function(file, data) {
+            Components.utils.import("resource://gre/modules/NetUtil.jsm");
+            Components.utils.import("resource://gre/modules/FileUtils.jsm");
+
+            // file is nsIFile, data is a string
+
+            // You can also optionally pass a flags parameter here. It defaults to
+            // FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE | FileUtils.MODE_TRUNCATE;
+            var ostream = FileUtils.openSafeFileOutputStream(file)
+
+            var converter = Components.classes["@mozilla.org/intl/scriptableunicodeconverter"].
+            createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
+            converter.charset = "UTF-8";
+            var istream = converter.convertToInputStream(data);
+
+            // The last argument (the callback) is optional.
+            NetUtil.asyncCopy(istream, ostream, function(status) {
+                if (!Components.isSuccessCode(status)) {
+                    // Handle error!
+                    return;
+                }
+
+                // Data has been written to the file.
+            });
+        };
+        come = panel.hud.outputNode;
+        firefoxAutosaveFile = getFile('consoleAutosave.txt', 'consoleAutosave');
+    } else if (supportedProtocolRegExp.test(location.protocol)) {
         while ((s = window.getSelection()) && window.confirm('Select parentElement of current selection?\n\nCancel to select current selection.\n')) {
             if (s.rangeCount) {
                 r = document.createRange();
@@ -63,7 +140,13 @@
         window.alert('Can only autosave nodes in\nGoogle Chrome console\nor pages matching\n' + supportedProtocolRegExp + '\nGiving up on ' + location.href);
     }
     if (come) {
-        var autosaveIndicator = document.createElement('span');
+        if (firefoxAutosaveFile || location.protocol === "chrome-devtools:") {
+            popup = window.open('', '', popupFeatures);
+            myDocument = popup.document;
+        } else {
+            myDocument = document;
+        }
+        var autosaveIndicator = myDocument.createElement('span');
         autosaveIndicator.style.position = 'fixed';
         autosaveIndicator.style.bottom = '1em';
         autosaveIndicator.style.right = '1em';
@@ -71,77 +154,100 @@
         autosaveIndicator.style.border = '1px dashed';
         autosaveIndicator.style.transition = 'opacity 1s 0s';
 
-        var downloadLink = document.createElement('a');
+        var downloadLink = myDocument.createElement('a');
         downloadLink.innerHTML = '&DoubleDownArrow; autosave';
         autosaveIndicator.appendChild(downloadLink);
 
-        var close = autosaveIndicator.appendChild(document.createElement('span'));
+        var close = autosaveIndicator.appendChild(myDocument.createElement('span'));
         close.textContent = "[x]";
         close.addEventListener('click', function(event) {
             window.clearInterval(timerID);
-            if (location.protocol === "chrome-devtools:") {
+            if (firefoxAutosaveFile || location.protocol === "chrome-devtools:") {
                 popup.close();
             } else {
                 document.body.removeChild(autosaveIndicator);
             }
         }, false);
-        if (location.protocol === "chrome-devtools:") {
-            popup = window.open('', '', popupFeatures);
-            popup.document.body.appendChild(autosaveIndicator);
-        } else {
-            document.body.appendChild(autosaveIndicator);
-        }
-        if (localStorage.autosaveElementText && localStorage.autosaveElementTime) {
-            var downloadOldLink = document.createElement('a');
+        myDocument.body.appendChild(autosaveIndicator);
+        //        console.log(getElementPath(come, location.href));
+        if (firefoxAutosaveFile || localStorage.autosaveElementFileText) {
+            //        if (false) {
+            var downloadOldLink = myDocument.createElement('a');
             downloadOldLink.innerHTML = '&DoubleDownArrow; Previous autosave';
             autosaveIndicator.insertBefore(downloadOldLink, downloadLink);
-            var time = localStorage.autosaveElementTime;
-            var autosaveElementFileText =
-                'autosaveElement\n' + localStorage.autosaveElementPath + '\nfrom ' + (new Date(Number(localStorage.autosaveElementTime))) + '\n\n' + localStorage.autosaveElementText;
-            // 'chrome devtools autosave from ' + time + '\n\n' + text;
-            var autosaveElementBlob = new Blob([autosaveElementFileText], {
-                'type': 'text/plain;charset=utf-8'
-            });
-            // var div = document.createElement('div');
-            // div.style.position = 'fixed';
-            // div.style.top = '5em';
-            // div.style.left = '5em';
-            // div.style.backgroundColor = 'white';
-            // div.style.border = '1px dashed';
-            // document.body.appendChild(div);
-            // var a = document.createElement('a');
-            downloadOldLink.href = window.URL.createObjectURL(autosaveElementBlob);
-            // a.textContent = 'Download autosaveElement';
-            // a.download = 'autosaveElement' + time.getTime() + '.txt';
-            downloadOldLink.download = 'autosaveElement' + localStorage.autosaveElementTime + '.txt';
-            // div.appendChild(a);
+            var time = /*localStorage.*/
+            autosaveElementTime;
+            //            localStorage.autosaveElementFileText =
+            //                'autosaveElement\n' + /*localStorage.*/autosaveElementPath + '\nfrom ' + (new Date(Number(/*localStorage.*/autosaveElementTime))) + '\n\n' + /*localStorage.*/autosaveElementText;
+            //            // 'chrome devtools autosave from ' + time + '\n\n' + text;
+            if (firefoxAutosaveFile) {
+                readFile(firefoxAutosaveFile, function(inputStream, status) {
+                    if (!Components.isSuccessCode(status)) {
+                        // Handle error!
+                        return;
+                    }
+                    // The file data is contained within inputStream.
+                    // You can read it into a string with
+                    var data = NetUtil.readInputStreamToString(inputStream, inputStream.available());
+                    autosaveElementBlob = new Blob([data], {
+                        'type': 'text/plain;charset=utf-8'
+                    });
+                    //                    console.log(data);
+                    downloadOldLink.href = window.URL.createObjectURL(autosaveElementBlob);
+                    window.prompt('consoleAutosave Location', firefoxAutosaveFile.path);
+                });
+            } else {
+                autosaveElementBlob = new Blob([localStorage.autosaveElementFileText], {
+                    'type': 'text/plain;charset=utf-8'
+                });
+                downloadOldLink.href = window.URL.createObjectURL(autosaveElementBlob);
+            }
+            // FIXME We lost our ability to know when the autosave data was actually saved, but it is inside the file.
+            downloadOldLink.download = 'autosaveElement' + Date.now() + '.txt';
             downloadOldLink.addEventListener('click', function(event) {
                 // event.preventDefault();
                 autosaveIndicator.removeChild(downloadOldLink);
             }, false);
-            // var pre = div.appendChild(document.createElement('pre'));
-            // pre.textContent = autosaveElementFileText;
+            // var pre = div.appendChild(myDocument.createElement('pre'));
+            // pre.textContent = localStorage.autosaveElementFileText;
         }
-        localStorage.autosaveElementText = '';
-        localStorage.autosaveElementPath = getElementPath(come, location.href);
-        localStorage.autosaveElementTime = Date.now();
+        /*localStorage.*/
+        autosaveElementText = '';
+        /*localStorage.*/
+        autosaveElementPath = getElementPath(come, location.href);
+        /*localStorage.*/
+        autosaveElementTime = Date.now();
         var timerID = window.setInterval(function() {
             text = getText(come);
-            if (text.length - localStorage.autosaveElementText.length > 20) {
+            if (text.length - /*localStorage.*/ autosaveElementText.length > 20) {
                 autosaveIndicator.style.opacity = 1;
-                localStorage.autosaveElementTime = Date.now();
-                localStorage.autosaveElementText = text;
-                var autosaveElementFileText =
-                    'autosaveElement\n' + localStorage.autosaveElementPath + '\nfrom ' + (new Date(Number(localStorage.autosaveElementTime))) + '\n\n' + localStorage.autosaveElementText;
-                var autosaveElementBlob = new Blob([autosaveElementFileText], {
+                /*localStorage.*/
+                autosaveElementTime = Date.now();
+                /*localStorage.*/
+                autosaveElementText = text;
+                autosaveElementFileText =
+                    'autosaveElement\n' + /*localStorage.*/
+                autosaveElementPath + '\nfrom ' + (new Date(Number( /*localStorage.*/ autosaveElementTime))) + '\n\n' + /*localStorage.*/
+                autosaveElementText;
+                if (firefoxAutosaveFile) {
+                    writeFile(firefoxAutosaveFile, autosaveElementFileText);
+                } else {
+                    localStorage.autosaveElementFileText = autosaveElementFileText;
+                }
+                autosaveElementBlob = new Blob([autosaveElementFileText], {
                     'type': 'text/plain;charset=utf-8'
                 });
-                downloadLink.title = localStorage.autosaveElementText.length + ' characters saved at ' + new Date(Number(localStorage.autosaveElementTime)).toString();
+                downloadLink.title = autosaveElementText.length + ' characters saved at ' + new Date(Number(autosaveElementTime)).toString();
                 downloadLink.href = window.URL.createObjectURL(autosaveElementBlob);
-                downloadLink.download = 'autosaveElement' + localStorage.autosaveElementTime + '.txt';
-                window.setTimeout(function() {
-                    autosaveIndicator.style.opacity = 0.3;
-                }, 2000);
+                downloadLink.download = 'autosaveElement' + autosaveElementTime + '.txt';
+                //                 downloadLink.setAttribute('title', /*localStorage.*/
+                //                 autosaveElementText.length + ' characters saved at ' + new Date(Number( /*localStorage.*/ autosaveElementTime)).toString());
+                //                 downloadLink.setAttribute('href', window.URL.createObjectURL(autosaveElementBlob));
+                //                 downloadLink.setAttribute('download', 'autosaveElement' + /*localStorage.*/
+                //                 autosaveElementTime + '.txt');
+                //                 window.setTimeout(function() {
+                //                     autosaveIndicator.style.opacity = 0.3;
+                //                 }, 2000);
             }
         }, autosaveInterval);
     } else {
