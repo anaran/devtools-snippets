@@ -4,6 +4,8 @@
 /*jslint browser: true*/
 /*globals URL: false, console: false */
     'use strict';
+// Normalize comments because Format JS cannot do that yet.
+// From:^(\s*//\s)(\s+):To:$1:
 (function() {
     var r, s, popup, popupFeatures = 'width=250,height=120',
         come, text, autosaveInterval = 5000,
@@ -12,7 +14,7 @@
         if (!path) {
             path = "";
         }
-        //         console.trace();
+        // console.trace();
         if (!element) {
             return path;
         } else {
@@ -35,7 +37,7 @@
                 }
                 txt += getText(node);
                 if (cs && cs.display.match(/block/)) {
-                    //                     console.log(cs.display);
+                    // console.log(cs.display);
                     txt += '\n';
                 }
             } while (node = node.nextSibling);
@@ -96,29 +98,29 @@
             var time = localStorage.autosaveElementTime;
             var autosaveElementFileText =
                 'autosaveElement\n' + localStorage.autosaveElementPath + '\nfrom ' + (new Date(Number(localStorage.autosaveElementTime))) + '\n\n' + localStorage.autosaveElementText;
-            //         'chrome devtools autosave from ' + time + '\n\n' + text;
+            // 'chrome devtools autosave from ' + time + '\n\n' + text;
             var autosaveElementBlob = new Blob([autosaveElementFileText], {
                 'type': 'text/plain;charset=utf-8'
             });
-            //        var div = document.createElement('div');
-            //        div.style.position = 'fixed';
-            //        div.style.top = '5em';
-            //        div.style.left = '5em';
-            //        div.style.backgroundColor = 'white';
-            //        div.style.border = '1px dashed';
-            //        document.body.appendChild(div);
-            //        var a = document.createElement('a');
+            // var div = document.createElement('div');
+            // div.style.position = 'fixed';
+            // div.style.top = '5em';
+            // div.style.left = '5em';
+            // div.style.backgroundColor = 'white';
+            // div.style.border = '1px dashed';
+            // document.body.appendChild(div);
+            // var a = document.createElement('a');
             downloadOldLink.href = window.URL.createObjectURL(autosaveElementBlob);
-            //        a.textContent = 'Download autosaveElement';
-            //         a.download = 'autosaveElement' + time.getTime() + '.txt';
+            // a.textContent = 'Download autosaveElement';
+            // a.download = 'autosaveElement' + time.getTime() + '.txt';
             downloadOldLink.download = 'autosaveElement' + localStorage.autosaveElementTime + '.txt';
-            //        div.appendChild(a);
+            // div.appendChild(a);
             downloadOldLink.addEventListener('click', function(event) {
                 // event.preventDefault();
                 autosaveIndicator.removeChild(downloadOldLink);
             }, false);
-            //        var pre = div.appendChild(document.createElement('pre'));
-            //        pre.textContent = autosaveElementFileText;
+            // var pre = div.appendChild(document.createElement('pre'));
+            // pre.textContent = autosaveElementFileText;
         }
         localStorage.autosaveElementText = '';
         localStorage.autosaveElementPath = getElementPath(come, location.href);
