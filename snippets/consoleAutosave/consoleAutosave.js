@@ -2,7 +2,7 @@
 // Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1738.0 Safari/537.36
 // at Sun Dec 15 2013 16:57:42 GMT+0100 (Westeuropäische Normalzeit)
 /*jslint browser: true*/
-/*globals Cc: false, Ci: false, Components: false, Cu: false, gBrowser:false, FileUtils: false,
+/*globals Cc: false, Ci: false, Components: false, Cu: false, content: false, gBrowser:false, FileUtils: false,
 NetUtil: false, URL: false, console: false */
     'use strict';
 // Normalize comments because Format JS cannot do that yet.
@@ -110,7 +110,7 @@ NetUtil: false, URL: false, console: false */
 
             // You can also optionally pass a flags parameter here. It defaults to
             // FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE | FileUtils.MODE_TRUNCATE;
-            var ostream = FileUtils.openSafeFileOutputStream(file)
+            var ostream = FileUtils.openSafeFileOutputStream(file);
 
             var converter = Components.classes["@mozilla.org/intl/scriptableunicodeconverter"].
             createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
@@ -129,9 +129,9 @@ NetUtil: false, URL: false, console: false */
         };
         come = panel.hud.outputNode;
         // console.log(panel);
-//         var dd = document.createNode('div');
-//         dd.textContent = "HELLO WORLD!";
-//         come.appendChild(dd);
+        //         var dd = document.createNode('div');
+        //         dd.textContent = "HELLO WORLD!";
+        //         come.appendChild(dd);
         firefoxAutosaveFile = getFile('consoleAutosave.txt', 'consoleAutosave');
     } else if (supportedProtocolRegExp.test(location.protocol)) {
         while ((s = window.getSelection()) && window.confirm('Select parentElement of current selection?\n\nCancel to select current selection.\n')) {
@@ -152,9 +152,11 @@ NetUtil: false, URL: false, console: false */
         window.alert('Can only autosave nodes in\nFirefox or Google Chrome Console\nor pages matching\n' + supportedProtocolRegExp + '\nGiving up on ' + location.href);
     }
     if (come) {
-        if (firefoxAutosaveFile || location.protocol === "chrome-devtools:") {
-            // popup = window.open('', '', popupFeatures);
+        if (firefoxAutosaveFile) {
             popup = content;
+            myDocument = popup.document;
+        } else if (location.protocol === "chrome-devtools:") {
+            popup = window.open('', '', popupFeatures);
             myDocument = popup.document;
         } else {
             myDocument = document;
@@ -176,28 +178,14 @@ NetUtil: false, URL: false, console: false */
         close.style.margin = '6px 3px';
         // TODO See http://dev.w3.org/html5/html-author/charref
         close.innerHTML = "&Cross;";
-        close.addEventListener('click', function(event) {
-            window.clearInterval(timerID);
-            if (firefoxAutosaveFile || location.protocol === "chrome-devtools:") {
-                popup.close();
-                // window.open(window.URL.createObjectURL(autosaveElementBlob), '');
-            } else {
-                document.body.removeChild(autosaveIndicator);
-            }
-        }, false);
         myDocument.body.appendChild(autosaveIndicator);
         //        console.log(getElementPath(come, location.href));
         if (firefoxAutosaveFile || localStorage.autosaveElementFileText) {
             //        if (false) {
             var downloadOldLink = myDocument.createElement('a');
-        downloadOldLink.style.margin = '6px 3px';
+            downloadOldLink.style.margin = '6px 3px';
             downloadOldLink.innerHTML = '&DoubleDownArrow; Previous autosave';
             autosaveIndicator.insertBefore(downloadOldLink, downloadLink);
-            var time = /*localStorage.*/
-            autosaveElementTime;
-            //            localStorage.autosaveElementFileText =
-            //                'autosaveElement\n' + /*localStorage.*/autosaveElementPath + '\nfrom ' + (new Date(Number(/*localStorage.*/autosaveElementTime))) + '\n\n' + /*localStorage.*/autosaveElementText;
-            //            // 'chrome devtools autosave from ' + time + '\n\n' + text;
             if (firefoxAutosaveFile) {
                 readFile(firefoxAutosaveFile, function(inputStream, status) {
                     if (!Components.isSuccessCode(status)) {
@@ -212,12 +200,12 @@ NetUtil: false, URL: false, console: false */
                     });
                     //                    console.log(data);
                     downloadOldLink.href = popup.URL.createObjectURL(autosaveElementBlob);
-//                     var locationDiv = myDocument.createElement('div');
-//                     locationDiv.textContent = firefoxAutosaveFile.path;
-//                     autosaveIndicator.appendChild(locationDiv);
-//                     console.log(firefoxAutosaveFile.path);
-//                     console.log(downloadOldLink.href);
-//                     console.log(downloadOldLink);
+                    //                     var locationDiv = myDocument.createElement('div');
+                    //                     locationDiv.textContent = firefoxAutosaveFile.path;
+                    //                     autosaveIndicator.appendChild(locationDiv);
+                    //                     console.log(firefoxAutosaveFile.path);
+                    //                     console.log(downloadOldLink.href);
+                    //                     console.log(downloadOldLink);
                     // window.prompt('consoleAutosave Location', firefoxAutosaveFile.path);
                 });
             } else {
@@ -274,6 +262,15 @@ NetUtil: false, URL: false, console: false */
                 //                 }, 2000);
             }
         }, autosaveInterval);
+        close.addEventListener('click', function(event) {
+            window.clearInterval(timerID);
+            if (firefoxAutosaveFile || location.protocol === "chrome-devtools:") {
+                popup.close();
+                // window.open(window.URL.createObjectURL(autosaveElementBlob), '');
+            } else {
+                document.body.removeChild(autosaveIndicator);
+            }
+        }, false);
     } else {
         console.error(come);
     }
