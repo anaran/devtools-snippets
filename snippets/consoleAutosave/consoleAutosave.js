@@ -8,7 +8,7 @@ NetUtil: false, URL: false, console: false */
 // Normalize comments because Format JS cannot do that yet.
 // From:^(\s*//\s)(\s+):To:$1:
 (function() {
-    var r, s, myDocument, popup, popupFeatures = 'width=250,height=120',
+    var r, s, myDocument, popup, popupFeatures = '', // width=250,height=120',
         come, text, autosaveInterval = 5000,
         supportedProtocolRegExp = /^https?:$/;
     var /*localStorage.*/
@@ -27,6 +27,8 @@ NetUtil: false, URL: false, console: false */
             return getElementPath(element.parentElement, elementSelector + " " + path);
         }
     };
+    // TODO firefox hud outputNode has three children per line:
+    // timestamp, icon (in, out, error, warning, log), message
     var getText = function(node) {
         if (node.nodeType === document.TEXT_NODE) {
             return node.data;
@@ -49,13 +51,19 @@ NetUtil: false, URL: false, console: false */
         }
         return txt;
     };
-    if (window.hasOwnProperty('Cu')) {
-        var gDevTools = Cu.import("resource:///modules/devtools/gDevTools.jsm", {}).gDevTools;
-        var tools = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
-        var target = tools.TargetFactory.forTab(gBrowser.selectedTab);
-        var toolbox = gDevTools.getToolbox(target);
-        var panel = toolbox.getPanel("webconsole");
-
+    // When Scratchpad is in Browser Context:
+    // "location.protocol" "chrome:"
+    // In webconsole.js
+    // execute: function JST_execute(aExecuteString, aCallback)
+    // {
+    // I find in this.history:
+    // 1:"window.querySelector('div#output-container')"
+    var gDevTools = window.hasOwnProperty('Cu') && Cu.import("resource:///modules/devtools/gDevTools.jsm", {}).gDevTools;
+    var tools = window.hasOwnProperty('Cu') && Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
+    var target = tools && tools.TargetFactory.forTab(gBrowser.selectedTab);
+    var toolbox = target && gDevTools.getToolbox(target);
+    var panel = toolbox && toolbox.getPanel("webconsole");
+    if (panel) {
         var getLocalDirectory = function(directory) {
             let directoryService = Cc["@mozilla.org/file/directory_service;1"].
             getService(Ci.nsIProperties);
@@ -120,6 +128,10 @@ NetUtil: false, URL: false, console: false */
             });
         };
         come = panel.hud.outputNode;
+        // console.log(panel);
+//         var dd = document.createNode('div');
+//         dd.textContent = "HELLO WORLD!";
+//         come.appendChild(dd);
         firefoxAutosaveFile = getFile('consoleAutosave.txt', 'consoleAutosave');
     } else if (supportedProtocolRegExp.test(location.protocol)) {
         while ((s = window.getSelection()) && window.confirm('Select parentElement of current selection?\n\nCancel to select current selection.\n')) {
@@ -137,11 +149,12 @@ NetUtil: false, URL: false, console: false */
     } else if (location.protocol === "chrome-devtools:") {
         come = document.getElementById('console-messages');
     } else {
-        window.alert('Can only autosave nodes in\nGoogle Chrome console\nor pages matching\n' + supportedProtocolRegExp + '\nGiving up on ' + location.href);
+        window.alert('Can only autosave nodes in\nFirefox or Google Chrome Console\nor pages matching\n' + supportedProtocolRegExp + '\nGiving up on ' + location.href);
     }
     if (come) {
         if (firefoxAutosaveFile || location.protocol === "chrome-devtools:") {
-            popup = window.open('', '', popupFeatures);
+            // popup = window.open('', '', popupFeatures);
+            popup = content;
             myDocument = popup.document;
         } else {
             myDocument = document;
@@ -155,15 +168,19 @@ NetUtil: false, URL: false, console: false */
         autosaveIndicator.style.transition = 'opacity 1s 0s';
 
         var downloadLink = myDocument.createElement('a');
+        downloadLink.style.margin = '6px 3px';
         downloadLink.innerHTML = '&DoubleDownArrow; autosave';
         autosaveIndicator.appendChild(downloadLink);
 
         var close = autosaveIndicator.appendChild(myDocument.createElement('span'));
-        close.textContent = "[x]";
+        close.style.margin = '6px 3px';
+        // TODO See http://dev.w3.org/html5/html-author/charref
+        close.innerHTML = "&Cross;";
         close.addEventListener('click', function(event) {
             window.clearInterval(timerID);
             if (firefoxAutosaveFile || location.protocol === "chrome-devtools:") {
                 popup.close();
+                // window.open(window.URL.createObjectURL(autosaveElementBlob), '');
             } else {
                 document.body.removeChild(autosaveIndicator);
             }
@@ -173,6 +190,7 @@ NetUtil: false, URL: false, console: false */
         if (firefoxAutosaveFile || localStorage.autosaveElementFileText) {
             //        if (false) {
             var downloadOldLink = myDocument.createElement('a');
+        downloadOldLink.style.margin = '6px 3px';
             downloadOldLink.innerHTML = '&DoubleDownArrow; Previous autosave';
             autosaveIndicator.insertBefore(downloadOldLink, downloadLink);
             var time = /*localStorage.*/
@@ -193,8 +211,14 @@ NetUtil: false, URL: false, console: false */
                         'type': 'text/plain;charset=utf-8'
                     });
                     //                    console.log(data);
-                    downloadOldLink.href = window.URL.createObjectURL(autosaveElementBlob);
-                    window.prompt('consoleAutosave Location', firefoxAutosaveFile.path);
+                    downloadOldLink.href = popup.URL.createObjectURL(autosaveElementBlob);
+//                     var locationDiv = myDocument.createElement('div');
+//                     locationDiv.textContent = firefoxAutosaveFile.path;
+//                     autosaveIndicator.appendChild(locationDiv);
+//                     console.log(firefoxAutosaveFile.path);
+//                     console.log(downloadOldLink.href);
+//                     console.log(downloadOldLink);
+                    // window.prompt('consoleAutosave Location', firefoxAutosaveFile.path);
                 });
             } else {
                 autosaveElementBlob = new Blob([localStorage.autosaveElementFileText], {
@@ -238,7 +262,7 @@ NetUtil: false, URL: false, console: false */
                     'type': 'text/plain;charset=utf-8'
                 });
                 downloadLink.title = autosaveElementText.length + ' characters saved at ' + new Date(Number(autosaveElementTime)).toString();
-                downloadLink.href = window.URL.createObjectURL(autosaveElementBlob);
+                downloadLink.href = popup.URL.createObjectURL(autosaveElementBlob);
                 downloadLink.download = 'autosaveElement' + autosaveElementTime + '.txt';
                 //                 downloadLink.setAttribute('title', /*localStorage.*/
                 //                 autosaveElementText.length + ' characters saved at ' + new Date(Number( /*localStorage.*/ autosaveElementTime)).toString());
