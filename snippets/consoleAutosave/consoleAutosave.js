@@ -43,7 +43,7 @@ NetUtil: false, URL: false, console: false */
                     //                     console.log(exception.stack);
                 }
                 txt += getText(node);
-                if (cs && cs.display.match(/block/)) {
+                if (cs && cs.display === 'block') {
                     // console.log(cs.display);
                     txt += '\n';
                 }
