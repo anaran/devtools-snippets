@@ -8,7 +8,7 @@ NetUtil: false, URL: false, console: false */
 // Normalize comments because Format JS cannot do that yet.
 // From:^(\s*//\s)(\s+):To:$1:
 (function() {
-    var r, s, myDocument, popup, popupFeatures = '', // width=250,height=120',
+    var r, s, myDocument, popup, popupFeatures = 'width=250,height=120',
         come, text, autosaveInterval = 5000,
         supportedProtocolRegExp = /^https?:$/;
     var /*localStorage.*/
@@ -252,14 +252,9 @@ NetUtil: false, URL: false, console: false */
                 downloadLink.title = autosaveElementText.length + ' characters saved at ' + new Date(Number(autosaveElementTime)).toString();
                 downloadLink.href = popup.URL.createObjectURL(autosaveElementBlob);
                 downloadLink.download = 'autosaveElement' + autosaveElementTime + '.txt';
-                //                 downloadLink.setAttribute('title', /*localStorage.*/
-                //                 autosaveElementText.length + ' characters saved at ' + new Date(Number( /*localStorage.*/ autosaveElementTime)).toString());
-                //                 downloadLink.setAttribute('href', window.URL.createObjectURL(autosaveElementBlob));
-                //                 downloadLink.setAttribute('download', 'autosaveElement' + /*localStorage.*/
-                //                 autosaveElementTime + '.txt');
-                //                 window.setTimeout(function() {
-                //                     autosaveIndicator.style.opacity = 0.3;
-                //                 }, 2000);
+                window.setTimeout(function() {
+                    autosaveIndicator.style.opacity = 0.3;
+                }, 2000);
             }
         }, autosaveInterval);
         close.addEventListener('click', function(event) {
