@@ -28,7 +28,7 @@ NetUtil: false, URL: false, console: false */
         }
     };
     // TODO firefox hud outputNode has three children per line:
-    // timestamp, icon (in, out, error, warning, log), message
+    // timestamp, category (in, out, error, warning, log), message
     var getText = function(node) {
         if (node.nodeType === document.TEXT_NODE) {
             return node.data;
@@ -133,19 +133,6 @@ NetUtil: false, URL: false, console: false */
         //         dd.textContent = "HELLO WORLD!";
         //         come.appendChild(dd);
         firefoxAutosaveFile = getFile('consoleAutosave.txt', 'consoleAutosave');
-    } else if (supportedProtocolRegExp.test(location.protocol)) {
-        while ((s = window.getSelection()) && window.confirm('Select parentElement of current selection?\n\nCancel to select current selection.\n')) {
-            if (s.rangeCount) {
-                r = document.createRange();
-                r.selectNodeContents(s.getRangeAt(0).commonAncestorContainer.parentElement);
-                s.removeAllRanges();
-                s.addRange(r);
-            }
-        }
-        if (!window.confirm('Enable autosaving selected element every ' + Number(autosaveInterval / 1000).toFixed(1) + ' seconds?\n\nSee [Previous autosave] [autosave] [x]\nat bottom right of page to download or quit autosaves.\n')) {
-            return;
-        }
-        come = s.getRangeAt(0).commonAncestorContainer;
     } else if (location.protocol === "chrome-devtools:") {
         come = document.getElementById('console-messages');
     } else {
@@ -167,11 +154,21 @@ NetUtil: false, URL: false, console: false */
         autosaveIndicator.style.right = '1em';
         autosaveIndicator.style.backgroundColor = 'white';
         autosaveIndicator.style.border = '1px dashed';
-        autosaveIndicator.style.transition = 'opacity 1s 0s';
+        autosaveIndicator.style.opacity = 0.3;
+        autosaveIndicator.style.transitionProperty = 'opacity';
+        autosaveIndicator.style.transitionDuration = '1s';
 
         var downloadLink = myDocument.createElement('a');
         downloadLink.style.margin = '6px 3px';
         downloadLink.innerHTML = '&DoubleDownArrow; autosave';
+        downloadLink.addEventListener('click', function(event) {
+            // event.preventDefault();
+            // downloadLink.disabled = true;
+            window.setTimeout(function() {
+                downloadLink.removeAttribute('href');
+            }, 100);
+            // console.log(event);
+        }, false);
         autosaveIndicator.appendChild(downloadLink);
 
         var close = autosaveIndicator.appendChild(myDocument.createElement('span'));
@@ -231,8 +228,9 @@ NetUtil: false, URL: false, console: false */
         autosaveElementTime = Date.now();
         var timerID = window.setInterval(function() {
             text = getText(come);
-            if (text.length - /*localStorage.*/ autosaveElementText.length > 20) {
-                autosaveIndicator.style.opacity = 1;
+            // TODO Please note a autosave download adds a blob link of 41 characters
+            // to the Net log, so let's stay above that.
+            if (text.length - /*localStorage.*/ autosaveElementText.length > 50) {
                 /*localStorage.*/
                 autosaveElementTime = Date.now();
                 /*localStorage.*/
@@ -252,18 +250,23 @@ NetUtil: false, URL: false, console: false */
                 downloadLink.title = autosaveElementText.length + ' characters saved at ' + new Date(Number(autosaveElementTime)).toString();
                 downloadLink.href = popup.URL.createObjectURL(autosaveElementBlob);
                 downloadLink.download = 'autosaveElement' + autosaveElementTime + '.txt';
+                // downloadLink.disabled = false;
+                autosaveIndicator.style.opacity = 1;
                 window.setTimeout(function() {
                     autosaveIndicator.style.opacity = 0.3;
-                }, 2000);
+                }, 1000);
+                //                 window.requestAnimationFrame(function (timestamp) {
+                //                         autosaveIndicator.style.opacity = 0.3;
+                //                 });
             }
         }, autosaveInterval);
         close.addEventListener('click', function(event) {
             window.clearInterval(timerID);
-            if (firefoxAutosaveFile || location.protocol === "chrome-devtools:") {
+            if (location.protocol === "chrome-devtools:") {
                 popup.close();
                 // window.open(window.URL.createObjectURL(autosaveElementBlob), '');
-            } else {
-                document.body.removeChild(autosaveIndicator);
+            } else if (firefoxAutosaveFile) {
+                myDocument.body.removeChild(autosaveIndicator);
             }
         }, false);
     } else {
