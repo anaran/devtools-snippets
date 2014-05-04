@@ -27,25 +27,59 @@ NetUtil: false, URL: false, console: false */
             return getElementPath(element.parentElement, elementSelector + " " + path);
         }
     };
-    // TODO firefox hud outputNode has three children per line:
+    // TODO firefox webConsole outputNode has three children per line:
     // timestamp, category (in, out, error, warning, log), message
     var getText = function(node) {
+        var cs;
         if (node.nodeType === document.TEXT_NODE) {
+//             console.log(node);
+//             try {
+//                 cs = window.getComputedStyle(node);
+//                 console.log('TEXT', cs.display);
+//             } catch (exception) {
+//                 // console.log(exception);
+//             }
             return node.data;
         }
         var txt = '';
         if (node.nodeType === document.ELEMENT_NODE) {
             if (node = node.firstChild) do {
-                var cs;
                 try {
                     cs = window.getComputedStyle(node);
+                    // console.log('ELEMENT', node, cs.display);
                 } catch (exception) {
-                    //                     console.log(exception.stack);
+                    // console.log(exception);
                 }
-                txt += getText(node);
-                if (cs && cs.display === 'block') {
-                    // console.log(cs.display);
-                    txt += '\n';
+                // debugger;
+                if (!cs || cs.display !== 'none') {
+                    console.log(node);
+                    switch (node.getAttribute && node.hasAttribute('category') && node.getAttribute('category')) {
+                    case 'input': {
+                                    txt += '< ';
+                            break;
+                    }
+                    case 'output': {
+                                    txt += '> ';
+                            break;
+                    }
+                    default: {
+                            switch (node.getAttribute && node.hasAttribute('severity') && node.getAttribute('severity')) {
+                                case 'error': {
+                                    txt += 'x ';
+                                    break;
+                                }
+                                case 'log': {
+                                    txt += ' ';
+                                    break;
+                                }
+                                case 'warn': {
+                                    txt += '! ';
+                                    break;
+                                }
+                            }
+                    }
+            }
+                    txt += getText(node);
                 }
             } while (node = node.nextSibling);
         }
@@ -60,10 +94,14 @@ NetUtil: false, URL: false, console: false */
     // 1:"window.querySelector('div#output-container')"
     var gDevTools = window.hasOwnProperty('Cu') && Cu.import("resource:///modules/devtools/gDevTools.jsm", {}).gDevTools;
     var tools = window.hasOwnProperty('Cu') && Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
-    var target = tools && tools.TargetFactory.forTab(gBrowser.selectedTab);
-    var toolbox = target && gDevTools.getToolbox(target);
-    var panel = toolbox && toolbox.getPanel("webconsole");
-    if (panel) {
+    var HUDService = tools.require("devtools/webconsole/hudservice");
+    var browserConsole = HUDService.getBrowserConsole();
+    var webConsole = HUDService.getOpenWebConsole();
+    // var target = tools && tools.TargetFactory.forTab(gBrowser.selectedTab);
+    // var toolbox = target && gDevTools.getToolbox(target);
+    // var webConsole = toolbox && toolbox.getPanel("webconsole");
+    console.log(webConsole);
+    if (webConsole) {
         var getLocalDirectory = function(directory) {
             let directoryService = Cc["@mozilla.org/file/directory_service;1"].
             getService(Ci.nsIProperties);
@@ -127,8 +165,8 @@ NetUtil: false, URL: false, console: false */
                 // Data has been written to the file.
             });
         };
-        come = panel.hud.outputNode;
-        // console.log(panel);
+        come = webConsole.outputNode;
+        // console.log(webConsole);
         //         var dd = document.createNode('div');
         //         dd.textContent = "HELLO WORLD!";
         //         come.appendChild(dd);
@@ -154,21 +192,21 @@ NetUtil: false, URL: false, console: false */
         autosaveIndicator.style.right = '1em';
         autosaveIndicator.style.backgroundColor = 'white';
         autosaveIndicator.style.border = '1px dashed';
-        autosaveIndicator.style.opacity = 0.3;
+                autosaveIndicator.style.opacity = 0.3;
         autosaveIndicator.style.transitionProperty = 'opacity';
         autosaveIndicator.style.transitionDuration = '1s';
 
         var downloadLink = myDocument.createElement('a');
         downloadLink.style.margin = '6px 3px';
         downloadLink.innerHTML = '&DoubleDownArrow; autosave';
-        downloadLink.addEventListener('click', function(event) {
-            // event.preventDefault();
-            // downloadLink.disabled = true;
-            window.setTimeout(function() {
+            downloadLink.addEventListener('click', function(event) {
+                // event.preventDefault();
+                // downloadLink.disabled = true;
+                window.setTimeout(function () {
                 downloadLink.removeAttribute('href');
-            }, 100);
-            // console.log(event);
-        }, false);
+                }, 100);
+                // console.log(event);
+            }, false);
         autosaveIndicator.appendChild(downloadLink);
 
         var close = autosaveIndicator.appendChild(myDocument.createElement('span'));
@@ -255,9 +293,9 @@ NetUtil: false, URL: false, console: false */
                 window.setTimeout(function() {
                     autosaveIndicator.style.opacity = 0.3;
                 }, 1000);
-                //                 window.requestAnimationFrame(function (timestamp) {
-                //                         autosaveIndicator.style.opacity = 0.3;
-                //                 });
+//                 window.requestAnimationFrame(function (timestamp) {
+//                         autosaveIndicator.style.opacity = 0.3;
+//                 });
             }
         }, autosaveInterval);
         close.addEventListener('click', function(event) {
