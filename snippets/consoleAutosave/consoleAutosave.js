@@ -10,7 +10,7 @@ NetUtil: false, URL: false, console: false */
 (function() {
     var r, s, myDocument, popup, popupFeatures = 'width=250,height=120',
         come, text, autosaveInterval = 5000,
-        supportedProtocolRegExp = /^https?:$/;
+        supportedProtocolRegExp = /^(https?|resource):$/;
     var /*localStorage.*/
     autosaveElementText, /*localStorage.*/
     autosaveElementPath, /*localStorage.*/
@@ -171,6 +171,19 @@ NetUtil: false, URL: false, console: false */
         //         dd.textContent = "HELLO WORLD!";
         //         come.appendChild(dd);
         firefoxAutosaveFile = getFile('consoleAutosave.txt', 'consoleAutosave');
+    } else if (supportedProtocolRegExp.test(location.protocol)) {
+        while ((s = window.getSelection()) && window.confirm('Select parentElement of current selection?\n\nCancel to select current selection.\n')) {
+            if (s.rangeCount) {
+                r = document.createRange();
+                r.selectNodeContents(s.getRangeAt(0).commonAncestorContainer.parentElement);
+                s.removeAllRanges();
+                s.addRange(r);
+            }
+        }
+        if (!window.confirm('Enable autosaving selected element every ' + Number(autosaveInterval / 1000).toFixed(1) + ' seconds?\n\nSee [Previous autosave] [autosave] [x]\nat bottom right of page to download or quit autosaves.\n')) {
+            return;
+        }
+        come = s.getRangeAt(0).commonAncestorContainer;
     } else if (location.protocol === "chrome-devtools:") {
         come = document.getElementById('console-messages');
     } else {
@@ -184,6 +197,7 @@ NetUtil: false, URL: false, console: false */
             popup = window.open('', '', popupFeatures);
             myDocument = popup.document;
         } else {
+        	popup = window;
             myDocument = document;
         }
         var autosaveIndicator = myDocument.createElement('span');
