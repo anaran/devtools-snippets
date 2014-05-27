@@ -23,7 +23,8 @@ NetUtil: false, URL: false, console: false */
         if (!element) {
             return path;
         } else {
-            var elementSelector = element.localName + (element.id ? '#' + element.id : "") + (element.className.length ? '.' + element.className.replace(/ /g, '.') : "");
+            console.log(element);
+            var elementSelector = (element.localName || element.nodeName) + (element.id ? '#' + element.id : "") + (element.className && element.className.length ? '.' + element.className.replace(/ /g, '.') : "");
             return getElementPath(element.parentElement, elementSelector + " " + path);
         }
     };
@@ -32,7 +33,7 @@ NetUtil: false, URL: false, console: false */
     var getText = function(node) {
         var cs;
         if (node.nodeType === document.TEXT_NODE) {
-//             console.log(node);
+            console.log(node);
 //             try {
 //                 cs = window.getComputedStyle(node);
 //                 console.log('TEXT', cs.display);
@@ -52,7 +53,7 @@ NetUtil: false, URL: false, console: false */
                 }
                 // debugger;
                 if (!cs || cs.display !== 'none') {
-                    console.log(node);
+                    // console.log(node);
                     switch (node.getAttribute && node.hasAttribute('category') && node.getAttribute('category')) {
                     case 'input': {
                                     txt += '< ';
@@ -69,7 +70,7 @@ NetUtil: false, URL: false, console: false */
                                     break;
                                 }
                                 case 'log': {
-                                    txt += ' ';
+                                    txt += '  ';
                                     break;
                                 }
                                 case 'warn': {
@@ -94,14 +95,17 @@ NetUtil: false, URL: false, console: false */
     // 1:"window.querySelector('div#output-container')"
     var gDevTools = window.hasOwnProperty('Cu') && Cu.import("resource:///modules/devtools/gDevTools.jsm", {}).gDevTools;
     var tools = window.hasOwnProperty('Cu') && Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
-    var HUDService = tools.require("devtools/webconsole/hudservice");
-    var browserConsole = HUDService.getBrowserConsole();
-    var webConsole = HUDService.getOpenWebConsole();
+    var HUDService = tools && tools.require("devtools/webconsole/hudservice");
+    var browserConsole = HUDService && HUDService.getBrowserConsole();
+    var webConsole = HUDService && HUDService.getOpenWebConsole();
     // var target = tools && tools.TargetFactory.forTab(gBrowser.selectedTab);
     // var toolbox = target && gDevTools.getToolbox(target);
     // var webConsole = toolbox && toolbox.getPanel("webconsole");
-    console.log(webConsole);
-    if (webConsole) {
+    // console.log(webConsole);
+    // if (browserConsole) {
+    //     window.alert('That will be nice!');
+    // }
+    if (webConsole || browserConsole) {
         var getLocalDirectory = function(directory) {
             let directoryService = Cc["@mozilla.org/file/directory_service;1"].
             getService(Ci.nsIProperties);
@@ -165,8 +169,9 @@ NetUtil: false, URL: false, console: false */
                 // Data has been written to the file.
             });
         };
-        come = webConsole.outputNode;
-        // console.log(webConsole);
+        come = webConsole && webConsole.outputNode || browserConsole && browserConsole.outputNode;
+        console.log("webConsole:", webConsole);
+        console.log("browserConsole:", browserConsole);
         //         var dd = document.createNode('div');
         //         dd.textContent = "HELLO WORLD!";
         //         come.appendChild(dd);
@@ -183,7 +188,7 @@ NetUtil: false, URL: false, console: false */
         if (!window.confirm('Enable autosaving selected element every ' + Number(autosaveInterval / 1000).toFixed(1) + ' seconds?\n\nSee [Previous autosave] [autosave] [x]\nat bottom right of page to download or quit autosaves.\n')) {
             return;
         }
-        come = s.getRangeAt(0).commonAncestorContainer;
+        come = s.rangeCount && s.getRangeAt(0).commonAncestorContainer;
     } else if (location.protocol === "chrome-devtools:") {
         come = document.getElementById('console-messages');
     } else {
@@ -192,15 +197,15 @@ NetUtil: false, URL: false, console: false */
     if (come) {
         if (firefoxAutosaveFile) {
             popup = content;
-            myDocument = popup.document;
+            myDocument = webConsole && webConsole.outputNode || browserConsole && browserConsole.outputNode || popup.document;
         } else if (location.protocol === "chrome-devtools:") {
             popup = window.open('', '', popupFeatures);
             myDocument = popup.document;
         } else {
-        	popup = window;
+            popup = window;
             myDocument = document;
         }
-        var autosaveIndicator = myDocument.createElement('span');
+        var autosaveIndicator = popup.document.createElement('span');
         autosaveIndicator.style.position = 'fixed';
         autosaveIndicator.style.bottom = '1em';
         autosaveIndicator.style.right = '1em';
@@ -210,7 +215,7 @@ NetUtil: false, URL: false, console: false */
         autosaveIndicator.style.transitionProperty = 'opacity';
         autosaveIndicator.style.transitionDuration = '1s';
 
-        var downloadLink = myDocument.createElement('a');
+        var downloadLink = popup.document.createElement('a');
         downloadLink.style.margin = '6px 3px';
         downloadLink.innerHTML = '&DoubleDownArrow; autosave';
             downloadLink.addEventListener('click', function(event) {
@@ -223,15 +228,26 @@ NetUtil: false, URL: false, console: false */
             }, false);
         autosaveIndicator.appendChild(downloadLink);
 
-        var close = autosaveIndicator.appendChild(myDocument.createElement('span'));
+        var close = autosaveIndicator.appendChild(popup.document.createElement('span'));
         close.style.margin = '6px 3px';
         // TODO See http://dev.w3.org/html5/html-author/charref
         close.innerHTML = "&Cross;";
-        myDocument.body.appendChild(autosaveIndicator);
+        if (webConsole && webConsole.outputNode) {
+            webConsole.outputNode.appendChild(autosaveIndicator);
+            console.log(autosaveIndicator, " appended to ", webConsole.outputNode);
+        }
+        else if (browserConsole && browserConsole.outputNode) {
+            browserConsole.outputNode.appendChild(autosaveIndicator);
+            console.log(autosaveIndicator, " appended to ", browserConsole.outputNode);
+        }
+        else {
+            myDocument.body.appendChild(autosaveIndicator);
+            console.log(autosaveIndicator, " appended to ", myDocument.body);
+        }
         //        console.log(getElementPath(come, location.href));
         if (firefoxAutosaveFile || localStorage.autosaveElementFileText) {
             //        if (false) {
-            var downloadOldLink = myDocument.createElement('a');
+            var downloadOldLink = popup.document.createElement('a');
             downloadOldLink.style.margin = '6px 3px';
             downloadOldLink.innerHTML = '&DoubleDownArrow; Previous autosave';
             autosaveIndicator.insertBefore(downloadOldLink, downloadLink);
@@ -282,6 +298,7 @@ NetUtil: false, URL: false, console: false */
             text = getText(come);
             // TODO Please note a autosave download adds a blob link of 41 characters
             // to the Net log, so let's stay above that.
+            console.log(text);
             if (text.length - /*localStorage.*/ autosaveElementText.length > 50) {
                 /*localStorage.*/
                 autosaveElementTime = Date.now();
@@ -306,7 +323,7 @@ NetUtil: false, URL: false, console: false */
                 autosaveIndicator.style.opacity = 1;
                 window.setTimeout(function() {
                     autosaveIndicator.style.opacity = 0.3;
-                }, 1000);
+                }, 2000);
 //                 window.requestAnimationFrame(function (timestamp) {
 //                         autosaveIndicator.style.opacity = 0.3;
 //                 });
@@ -316,12 +333,20 @@ NetUtil: false, URL: false, console: false */
             window.clearInterval(timerID);
             if (location.protocol === "chrome-devtools:") {
                 popup.close();
-                // window.open(window.URL.createObjectURL(autosaveElementBlob), '');
             } else if (firefoxAutosaveFile) {
-                myDocument.body.removeChild(autosaveIndicator);
+                    myDocument.removeChild(autosaveIndicator);
+            } else {
+                    myDocument.body.removeChild(autosaveIndicator);
             }
         }, false);
     } else {
-        console.error(come);
+        window.alert('Please select part of the element to be autosaved.');
     }
 })();
+
+/*
+Exception: element.className is undefined
+getElementPath@Scratchpad/2:26:17
+@Scratchpad/2:293:9
+@Scratchpad/2:10:2
+*/
