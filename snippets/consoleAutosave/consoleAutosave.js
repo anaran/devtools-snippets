@@ -23,7 +23,7 @@ NetUtil: false, URL: false, console: false */
         if (!element) {
             return path;
         } else {
-            console.log(element);
+            // console.log(element);
             var elementSelector = (element.localName || element.nodeName) + (element.id ? '#' + element.id : "") + (element.className && element.className.length ? '.' + element.className.replace(/ /g, '.') : "");
             return getElementPath(element.parentElement, elementSelector + " " + path);
         }
@@ -33,7 +33,7 @@ NetUtil: false, URL: false, console: false */
     var getText = function(node) {
         var cs;
         if (node.nodeType === document.TEXT_NODE) {
-            console.log(node);
+            // console.log(node);
 //             try {
 //                 cs = window.getComputedStyle(node);
 //                 console.log('TEXT', cs.display);
@@ -170,8 +170,8 @@ NetUtil: false, URL: false, console: false */
             });
         };
         come = webConsole && webConsole.outputNode || browserConsole && browserConsole.outputNode;
-        console.log("webConsole:", webConsole);
-        console.log("browserConsole:", browserConsole);
+        // console.log("webConsole:", webConsole);
+        // console.log("browserConsole:", browserConsole);
         //         var dd = document.createNode('div');
         //         dd.textContent = "HELLO WORLD!";
         //         come.appendChild(dd);
@@ -234,15 +234,15 @@ NetUtil: false, URL: false, console: false */
         close.innerHTML = "&Cross;";
         if (webConsole && webConsole.outputNode) {
             webConsole.outputNode.appendChild(autosaveIndicator);
-            console.log(autosaveIndicator, " appended to ", webConsole.outputNode);
+            // console.log(autosaveIndicator, " appended to ", webConsole.outputNode);
         }
         else if (browserConsole && browserConsole.outputNode) {
             browserConsole.outputNode.appendChild(autosaveIndicator);
-            console.log(autosaveIndicator, " appended to ", browserConsole.outputNode);
+            // console.log(autosaveIndicator, " appended to ", browserConsole.outputNode);
         }
         else {
             myDocument.body.appendChild(autosaveIndicator);
-            console.log(autosaveIndicator, " appended to ", myDocument.body);
+            // console.log(autosaveIndicator, " appended to ", myDocument.body);
         }
         //        console.log(getElementPath(come, location.href));
         if (firefoxAutosaveFile || localStorage.autosaveElementFileText) {
@@ -298,7 +298,7 @@ NetUtil: false, URL: false, console: false */
             text = getText(come);
             // TODO Please note a autosave download adds a blob link of 41 characters
             // to the Net log, so let's stay above that.
-            console.log(text);
+            // console.log(text);
             if (text.length - /*localStorage.*/ autosaveElementText.length > 50) {
                 /*localStorage.*/
                 autosaveElementTime = Date.now();
